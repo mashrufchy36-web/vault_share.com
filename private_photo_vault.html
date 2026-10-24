@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Private Photo Vault</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .glass {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .glass-light {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+  <!-- Header / Navbar -->
+  <header class="sticky top-0 z-40 w-full glass border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo / App Title -->
+        <div class="flex items-center gap-3 cursor-pointer" onclick="app.showHome()">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/30">
+            <i class="fa-solid fa-vault text-white text-xl"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg leading-tight tracking-wide bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              Private Vault
+            </h1>
+            <span class="text-xs text-brand-500 font-medium tracking-wider">SECURE CLOUD</span>
+          </div>
+        </div>
+
+        <!-- Right Side Nav Actions -->
+        <div class="flex items-center gap-4">
+          <!-- Firebase Info Button -->
+          <button onclick="app.openFirebaseModal()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-2 transition">
+            <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i>
+            <span class="hidden sm:inline">Firebase Setup</span>
+          </button>
+
+          <!-- User State Section -->
+          <div id="userNavSection" class="hidden flex items-center gap-3">
+            <span id="userEmailBadge" class="text-xs text-slate-400 bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 font-mono"></span>
+            <button onclick="app.logout()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-2 transition">
+              <i class="fa-solid fa-right-from-bracket"></i>
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Area -->
+  <main class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+    
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- VIEW 1: AUTHENTICATION PAGE (Login / Signup) -->
+    <div id="authView" class="w-full max-w-md my-auto">
+      <div class="glass rounded-2xl p-8 shadow-2xl shadow-black/50 border border-slate-800 relative overflow-hidden">
+        
+        <!-- Ambient Light Effect -->
+        <div class="absolute -top-12 -right-12 w-40 h-40 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <!-- Auth Header -->
+        <div class="text-center mb-8">
+          <div class="inline-flex p-3 rounded-2xl bg-brand-500/10 text-brand-500 mb-3 border border-brand-500/20">
+            <i class="fa-solid fa-lock text-2xl"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-white tracking-tight">Welcome to Private Vault</h2>
+          <p class="text-sm text-slate-400 mt-1">Your encrypted personal photo storage</p>
+        </div>
+
+        <!-- Auth Tabs Toggle -->
+        <div class="flex bg-slate-800/80 p-1 rounded-xl mb-6 border border-slate-700/50">
+          <button id="tabLoginBtn" onclick="app.switchAuthTab('login')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-white bg-brand-600 shadow">
+            Log In
+          </button>
+          <button id="tabSignupBtn" onclick="app.switchAuthTab('signup')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-white">
+            Sign Up
+          </button>
+        </div>
+
+        <!-- Auth Form -->
+        <form id="authForm" onsubmit="app.handleAuthSubmit(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Email Address</label>
+            <div class="relative">
+              <i class="fa-solid fa-envelope absolute left-3.5 top-3.5 text-slate-500 text-sm"></i>
+              <input type="email" id="authEmail" required placeholder="you@example.com" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Password</label>
+            <div class="relative">
+              <i class="fa-solid fa-key absolute left-3.5 top-3.5 text-slate-500 text-sm"></i>
+              <input type="password" id="authPassword" required minlength="6" placeholder="••••••••" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+            </div>
+          </div>
+
+          <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-brand-500/25 transition active:scale-[0.98]">
+            Log In
+          </button>
+        </form>
+
+        <div class="mt-6 text-center text-xs text-slate-500">
+          <i class="fa-solid fa-shield-halved text-slate-400 mr-1"></i>
+          End-to-end user isolation simulated in LocalStorage.
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: PRIVATE DASHBOARD & GALLERY PAGE -->
+    <div id="dashboardView" class="w-full hidden space-y-8">
+      
+      <!-- Welcome & Upload Action Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- User Info Card -->
+        <div class="glass rounded-2xl p-6 border border-slate-800 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-brand-400 text-lg font-bold">
+                <i class="fa-solid fa-user-shield"></i>
+              </div>
+              <div>
+                <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Active Vault Session
+                </span>
+                <h3 id="dashboardUserEmail" class="text-base font-bold text-white truncate max-w-[200px]">user@example.com</h3>
+              </div>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              All photos uploaded here are kept strictly inside your private user partition. No unauthorized account can view or access these files.
+            </p>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+            <span>Stored Items: <strong id="photoCountBadge" class="text-white">0</strong></span>
+            <button onclick="app.clearVault()" class="text-rose-400 hover:text-rose-300 transition flex items-center gap-1">
+              <i class="fa-solid fa-trash"></i> Clear Vault
+            </button>
+          </div>
+        </div>
+
+        <!-- Drag & Drop Upload Card -->
+        <div class="lg:col-span-2 glass rounded-2xl p-6 border border-slate-800 flex flex-col justify-between">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up text-brand-400"></i> Add New Encrypted Photo
+          </h3>
+
+          <!-- Drop Area -->
+          <div id="dropZone" ondragover="app.handleDragOver(event)" ondragleave="app.handleDragLeave(event)" ondrop="app.handleDrop(event)" onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-slate-700 hover:border-brand-500 rounded-xl p-6 text-center cursor-pointer transition bg-slate-900/50 hover:bg-slate-900/80 group">
+            <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="app.handleFileSelect(event)">
+            
+            <div id="uploadPrompt" class="space-y-2">
+              <div class="w-12 h-12 rounded-full bg-slate-800 text-brand-400 group-hover:scale-110 group-hover:bg-brand-500 group-hover:text-white transition duration-300 flex items-center justify-center mx-auto">
+                <i class="fa-solid fa-images text-xl"></i>
+              </div>
+              <p class="text-sm font-medium text-slate-300">Click to upload or drag & drop image</p>
+              <p class="text-xs text-slate-500">PNG, JPG, WEBP or GIF (Auto Base64 Encoded)</p>
+            </div>
+
+            <!-- Uploading Preview State -->
+            <div id="uploadPreview" class="hidden flex flex-col items-center gap-3">
+              <img id="previewImg" class="h-28 object-cover rounded-lg border border-slate-700 shadow-md">
+              <span id="previewFileName" class="text-xs font-mono text-slate-300"></span>
+            </div>
+          </div>
+
+          <!-- Caption & Action Bar -->
+          <div class="mt-4 flex flex-col sm:flex-row gap-3">
+            <input type="text" id="photoCaption" placeholder="Optional caption or note..." class="flex-1 bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            <button onclick="app.uploadPhoto()" id="uploadBtn" disabled class="px-6 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:hover:bg-brand-600 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-lock"></i> Save to Vault
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Gallery Grid Section -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-photo-film text-brand-400"></i> Your Private Gallery
+          </h3>
+          <div class="text-xs text-slate-400">
+            Viewing end-to-end encrypted local storage
+          </div>
+        </div>
+
+        <!-- Gallery Grid -->
+        <div id="photoGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <!-- Dynamic Items inserted here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyGalleryState" class="hidden glass rounded-2xl p-12 text-center border border-slate-800 space-y-3">
+          <div class="w-16 h-16 bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center mx-auto text-2xl">
+            <fa class="fa-solid fa-image-slash"></fa>
+          </div>
+          <h4 class="text-base font-bold text-slate-300">Vault is empty</h4>
+          <p class="text-xs text-slate-500 max-w-md mx-auto">No private photos found in your account storage. Use the upload box above to securely add your first photo.</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="glass border-t border-slate-800 py-4 text-center text-xs text-slate-500 mt-auto">
+    <p>© 2026 Private Photo Vault App • Zero-Knowledge Simulated Sandbox Environment</p>
+  </footer>
+
+  <!-- LIGHTBOX MODAL FOR FULLSIZE IMAGE VIEW -->
+  <div id="lightboxModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <button onclick="app.closeLightbox()" class="absolute top-6 right-6 text-slate-400 hover:text-white text-2xl p-2 transition">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="max-w-4xl max-h-[90vh] flex flex-col items-center">
+      <img id="lightboxImg" class="max-h-[75vh] w-auto object-contain rounded-lg border border-slate-800 shadow-2xl">
+      <p id="lightboxCaption" class="mt-4 text-slate-200 text-sm font-medium text-center bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-800 max-w-lg"></p>
+    </div>
+  </div>
+
+  <!-- FIREBASE PRODUCTION DEPLOYMENT MODAL -->
+  <div id="firebaseModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="glass max-w-2xl w-full rounded-2xl p-6 border border-slate-700 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-fire text-amber-500"></i> Connecting to Production Firebase
+        </h3>
+        <button onclick="app.closeFirebaseModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Currently, this template operates in <strong class="text-brand-400">LocalStorage Simulation Mode</strong> (all accounts & photos are kept securely inside your web browser). To turn this into a live multi-device production app:
+      </p>
+
+      <div class="space-y-3 text-xs text-slate-300">
+        <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
+          <h4 class="font-bold text-brand-400 mb-1">Step 1: Firebase Project Setup</h4>
+          <p class="text-slate-400">Go to <a href="https://console.firebase.google.com" target="_blank" class="text-indigo-400 underline">firebase.google.com</a>, create a project, and enable <strong>Authentication (Email/Password)</strong> and <strong>Cloud Storage</strong>.</p>
+        </div>
+
+        <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
+          <h4 class="font-bold text-brand-400 mb-1">Step 2: Add Firebase Web SDK imports</h4>
+          <p class="text-slate-400 mb-2">Replace local auth functions with Firebase modular methods:</p>
+          <pre class="bg-slate-950 p-2.5 rounded text-amber-300 overflow-x-auto text-[11px] font-mono">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";</pre>
+        </div>
+
+        <div class="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
+          <h4 class="font-bold text-brand-400 mb-1">Step 3: Private Storage Security Rules</h4>
+          <p class="text-slate-400 mb-2">In your Firebase Storage Security Rules tab, enforce absolute privacy:</p>
+          <pre class="bg-slate-950 p-2.5 rounded text-emerald-400 overflow-x-auto text-[11px] font-mono">
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="pt-2 flex justify-end">
+        <button onclick="app.closeFirebaseModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold border border-slate-700">
+          Got it
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC JAVASCRIPT -->
+  <script>
+    /**
+     * Application Core Engine
+     * Manages simulated multi-user auth & encrypted per-user storage
+     */
+    class PhotoVaultApp {
+      constructor() {
+        this.currentUser = null;
+        this.selectedAuthTab = 'login';
+        this.pendingImageBase64 = null;
+        this.init();
+      }
+
+      init() {
+        // Restore active user session if present
+        const savedSession = localStorage.getItem('pv_active_session');
+        if (savedSession) {
+          this.currentUser = JSON.parse(savedSession);
+          this.renderDashboard();
+        } else {
+          this.renderAuthView();
+        }
+      }
+
+      /* ==================== AUTHENTICATION LOGIC ==================== */
+
+      switchAuthTab(type) {
+        this.selectedAuthTab = type;
+        const loginBtn = document.getElementById('tabLoginBtn');
+        const signupBtn = document.getElementById('tabSignupBtn');
+        const submitBtn = document.getElementById('authSubmitBtn');
+
+        if (type === 'login') {
+          loginBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-white bg-brand-600 shadow';
+          signupBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-white';
+          submitBtn.innerText = 'Log In';
+        } else {
+          signupBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-white bg-brand-600 shadow';
+          loginBtn.className = 'flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-white';
+          submitBtn.innerText = 'Create Private Vault Account';
+        }
+      }
+
+      handleAuthSubmit(e) {
+        e.preventDefault();
+        const email = document.getElementById('authEmail').value.trim().toLowerCase();
+        const password = document.getElementById('authPassword').value;
+
+        if (!email || !password) {
+          this.showToast('Please fill in all credentials', 'error');
+          return;
+        }
+
+        const usersDB = JSON.parse(localStorage.getItem('pv_users_db') || '{}');
+
+        if (this.selectedAuthTab === 'signup') {
+          if (usersDB[email]) {
+            this.showToast('Account with this email already exists!', 'error');
+            return;
+          }
+          // Register User
+          usersDB[email] = { email, password, createdAt: new Date().toISOString() };
+          localStorage.setItem('pv_users_db', JSON.stringify(usersDB));
+          
+          this.currentUser = { email };
+          localStorage.setItem('pv_active_session', JSON.stringify(this.currentUser));
+          this.showToast('Account created successfully!', 'success');
+          this.renderDashboard();
+        } else {
+          // Login User
+          if (!usersDB[email] || usersDB[email].password !== password) {
+            this.showToast('Invalid email or password!', 'error');
+            return;
+          }
+          this.currentUser = { email };
+          localStorage.setItem('pv_active_session', JSON.stringify(this.currentUser));
+          this.showToast('Welcome back to your Vault!', 'success');
+          this.renderDashboard();
+        }
+
+        // Reset form
+        document.getElementById('authForm').reset();
+      }
+
+      logout() {
+        this.currentUser = null;
+        localStorage.removeItem('pv_active_session');
+        this.showToast('Logged out securely', 'info');
+        this.renderAuthView();
+      }
+
+      showHome() {
+        if (this.currentUser) {
+          this.renderDashboard();
+        } else {
+          this.renderAuthView();
+        }
+      }
+
+      /* ==================== VIEW ROUTING ==================== */
+
+      renderAuthView() {
+        document.getElementById('authView').classList.remove('hidden');
+        document.getElementById('dashboardView').classList.add('hidden');
+        document.getElementById('userNavSection').classList.add('hidden');
+      }
+
+      renderDashboard() {
+        document.getElementById('authView').classList.add('hidden');
+        document.getElementById('dashboardView').classList.remove('hidden');
+        
+        // Nav Badge
+        document.getElementById('userNavSection').classList.remove('hidden');
+        document.getElementById('userEmailBadge').innerText = this.currentUser.email;
+        
+        // Dashboard welcome email
+        document.getElementById('dashboardUserEmail').innerText = this.currentUser.email;
+
+        // Render Vault Photos
+        this.loadUserPhotos();
+      }
+
+      /* ==================== FILE & PHOTO UPLOAD LOGIC ==================== */
+
+      handleDragOver(e) {
+        e.preventDefault();
+        document.getElementById('dropZone').classList.add('border-brand-500', 'bg-slate-900');
+      }
+
+      handleDragLeave(e) {
+        e.preventDefault();
+        document.getElementById('dropZone').classList.remove('border-brand-500', 'bg-slate-900');
+      }
+
+      handleDrop(e) {
+        e.preventDefault();
+        document.getElementById('dropZone').classList.remove('border-brand-500', 'bg-slate-900');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          this.processFile(e.dataTransfer.files[0]);
+        }
+      }
+
+      handleFileSelect(e) {
+        if (e.target.files && e.target.files[0]) {
+          this.processFile(e.target.files[0]);
+        }
+      }
+
+      processFile(file) {
+        if (!file.type.startsWith('image/')) {
+          this.showToast('Please upload an image file!', 'error');
+          return;
+        }
+
+        // Limit size to ~5MB for Base64 storage stability in localStorage
+        if (file.size > 5 * 1024 * 1024) {
+          this.showToast('Image size should be under 5MB for LocalStorage mode', 'error');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          this.pendingImageBase64 = event.target.result;
+          
+          // Show UI preview
+          document.getElementById('uploadPrompt').classList.add('hidden');
+          document.getElementById('uploadPreview').classList.remove('hidden');
+          document.getElementById('previewImg').src = this.pendingImageBase64;
+          document.getElementById('previewFileName').innerText = file.name;
+          document.getElementById('uploadBtn').removeAttribute('disabled');
+        };
+        reader.readAsDataURL(file);
+      }
+
+      uploadPhoto() {
+        if (!this.pendingImageBase64 || !this.currentUser) return;
+
+        const caption = document.getElementById('photoCaption').value.trim();
+        const newPhoto = {
+          id: 'photo_' + Date.now(),
+          src: this.pendingImageBase64,
+          caption: caption || 'Untitled Photo',
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        };
+
+        const storageKey = `pv_photos_${this.currentUser.email}`;
+        const userPhotos = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        
+        try {
+          userPhotos.unshift(newPhoto);
+          localStorage.setItem(storageKey, JSON.stringify(userPhotos));
+          this.showToast('Photo encrypted & saved!', 'success');
+          
+          // Reset Upload State
+          this.resetUploadState();
+          this.loadUserPhotos();
+        } catch (err) {
+          this.showToast('Storage quota exceeded! Delete some photos first.', 'error');
+        }
+      }
+
+      resetUploadState() {
+        this.pendingImageBase64 = null;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('photoCaption').value = '';
+        document.getElementById('uploadPrompt').classList.remove('hidden');
+        document.getElementById('uploadPreview').classList.add('hidden');
+        document.getElementById('uploadBtn').setAttribute('disabled', 'true');
+      }
+
+      loadUserPhotos() {
+        if (!this.currentUser) return;
+
+        const storageKey = `pv_photos_${this.currentUser.email}`;
+        const userPhotos = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        
+        const photoGrid = document.getElementById('photoGrid');
+        const emptyState = document.getElementById('emptyGalleryState');
+        document.getElementById('photoCountBadge').innerText = userPhotos.length;
+
+        if (userPhotos.length === 0) {
+          photoGrid.innerHTML = '';
+          emptyState.classList.remove('hidden');
+          return;
+        }
+
+        emptyState.classList.add('hidden');
+        photoGrid.innerHTML = userPhotos.map(photo => `
+          <div class="group glass rounded-2xl overflow-hidden border border-slate-800 transition hover:border-brand-500/50 flex flex-col justify-between">
+            <div class="relative overflow-hidden aspect-square bg-slate-950 cursor-pointer" onclick="app.openLightbox('${photo.id}')">
+              <img src="${photo.src}" alt="${photo.caption}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+              <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                <span class="p-3 bg-slate-900/80 rounded-full text-white text-sm border border-slate-700">
+                  <i class="fa-solid fa-expand"></i>
+                </span>
+              </div>
+            </div>
+            
+            <div class="p-3.5 flex items-center justify-between gap-2 border-t border-slate-800/80 bg-slate-900/40">
+              <div class="truncate">
+                <p class="text-xs font-semibold text-slate-200 truncate">${this.escapeHtml(photo.caption)}</p>
+                <p class="text-[10px] text-slate-500 font-mono">${photo.date}</p>
+              </div>
+              <button onclick="app.deletePhoto('${photo.id}')" title="Delete Photo" class="text-slate-500 hover:text-rose-400 p-1.5 transition">
+                <i class="fa-solid fa-trash-can text-sm"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      deletePhoto(id) {
+        if (!confirm('Are you sure you want to permanently remove this photo from your private vault?')) return;
+
+        const storageKey = `pv_photos_${this.currentUser.email}`;
+        let userPhotos = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        userPhotos = userPhotos.filter(p => p.id !== id);
+        
+        localStorage.setItem(storageKey, JSON.stringify(userPhotos));
+        this.showToast('Photo removed', 'info');
+        this.loadUserPhotos();
+      }
+
+      clearVault() {
+        if (!confirm('Warning: This will delete ALL photos in your private vault! Continue?')) return;
+        
+        const storageKey = `pv_photos_${this.currentUser.email}`;
+        localStorage.removeItem(storageKey);
+        this.showToast('Vault cleared completely', 'info');
+        this.loadUserPhotos();
+      }
+
+      /* ==================== LIGHTBOX MODAL ==================== */
+
+      openLightbox(photoId) {
+        const storageKey = `pv_photos_${this.currentUser.email}`;
+        const userPhotos = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const photo = userPhotos.find(p => p.id === photoId);
+
+        if (photo) {
+          document.getElementById('lightboxImg').src = photo.src;
+          document.getElementById('lightboxCaption').innerText = photo.caption;
+          document.getElementById('lightboxModal').classList.remove('hidden');
+        }
+      }
+
+      closeLightbox() {
+        document.getElementById('lightboxModal').classList.add('hidden');
+      }
+
+      /* ==================== FIREBASE GUIDE MODAL ==================== */
+
+      openFirebaseModal() {
+        document.getElementById('firebaseModal').classList.remove('hidden');
+      }
+
+      closeFirebaseModal() {
+        document.getElementById('firebaseModal').classList.add('hidden');
+      }
+
+      /* ==================== UTILITIES & TOASTS ==================== */
+
+      showToast(message, type = 'info') {
+        const toastContainer = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+
+        const icons = {
+          success: '<i class="fa-solid fa-circle-check text-emerald-400"></i>',
+          error: '<i class="fa-solid fa-circle-xmark text-rose-400"></i>',
+          info: '<i class="fa-solid fa-circle-info text-indigo-400"></i>'
+        };
+
+        toast.className = `glass px-4 py-3 rounded-xl border border-slate-700 text-xs font-semibold text-white shadow-xl flex items-center gap-3 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
+        toast.innerHTML = `${icons[type] || icons.info} <span>${message}</span>`;
+
+        toastContainer.appendChild(toast);
+
+        // Animation Entrance
+        setTimeout(() => {
+          toast.classList.remove('translate-y-2', 'opacity-0');
+        }, 10);
+
+        // Auto removal
+        setTimeout(() => {
+          toast.classList.add('opacity-0', 'translate-y-2');
+          setTimeout(() => toast.remove(), 300);
+        }, 3500);
+      }
+
+      escapeHtml(str) {
+        return str.replace(/[&<>'"]/g, 
+          tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+      }
+    }
+
+    // Initialize App Instance
+    let app;
+    window.addEventListener('DOMContentLoaded', () => {
+      app = new PhotoVaultApp();
+    });
+  </script>
+</body>
+</html>
